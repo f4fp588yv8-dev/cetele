@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kuran &amp; Cevşen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<style>
+:root{--bg:#eef2f3;--card:#fff;--ink:#12302f;--mute:#5d7573;--line:#cfdcdc;--accent:#e9a21b;--on:#12302f;--onink:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1d1d;--card:#162a29;--ink:#e8f1f0;--mute:#8fa9a7;--line:#2a4443;--accent:#f0b43a;--on:#f0b43a;--onink:#0e1d1d}}
+:root[data-theme="dark"]{--bg:#0e1d1d;--card:#162a29;--ink:#e8f1f0;--mute:#8fa9a7;--line:#2a4443;--accent:#f0b43a;--on:#f0b43a;--onink:#0e1d1d}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:2rem;font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 20px}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab{flex:1;padding:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font:inherit;font-weight:600;cursor:pointer}
+.tab[aria-selected="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.tab:focus-visible,.item:focus-within,button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.badge{display:inline-block;min-width:22px;margin-left:6px;padding:0 6px;border-radius:99px;background:var(--accent);color:#12302f;font-size:.8rem}
+.page{display:none}.page.show{display:block}
+.item{display:flex;align-items:center;gap:12px;padding:14px;margin-bottom:8px;background:var(--card);border:2px solid var(--line);border-radius:12px;cursor:pointer}
+.item.sel{border-color:var(--on)}
+.item input{width:22px;height:22px;accent-color:var(--on);flex:none}
+.item span small{display:block;color:var(--mute)}
+.sum{margin-top:24px;padding:16px;background:var(--card);border:2px dashed var(--line);border-radius:12px}
+.sum h2{font-size:1.1rem;margin:0 0 8px}
+.sum ul{margin:0;padding-left:20px}
+.sum p{margin:0;color:var(--mute)}
+.row{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:8px;background:var(--card);border:2px solid var(--line);border-radius:12px}.row.taken{border-color:var(--on)}.row b{flex:1;min-width:0}.row input{flex:1.2;min-width:0;padding:8px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}.row button{padding:8px 12px;border:0;border-radius:8px;background:var(--on);color:var(--onink);font:inherit;font-weight:600;cursor:pointer}.row button.x{background:none;color:var(--mute);border:2px solid var(--line)}.who{flex:1.2;color:var(--mute)}.note{color:var(--mute);font-size:.9rem}.clear{margin-top:12px;padding:8px 14px;border:2px solid var(--line);background:none;color:var(--ink);border-radius:8px;font:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<main>
+  <h1>Kuran &amp; Cevşen</h1>
+  <p class="sub">Choose a part, add your name, and take it. Everyone sees who took what.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t0" aria-selected="true">Kuran<span class="badge" id="b0">0</span></button>
+    <button class="tab" role="tab" id="t1" aria-selected="false">Cevşen<span class="badge" id="b1">0</span></button>
+  </div>
+  <section class="page show" id="p0"></section>
+  <section class="page" id="p1"></section>
+  <p class="note" id="note"></p>
+</main>
+<script>
+const pages=[
+ Array.from({length:30},(_,i)=>(i+1)+". Cuz"),
+ ["CEVŞEN-İ KEBÎR","EVRÂD-I KUDSİYE","DELÂILÜ'N-NÛR","SEKINE DUASI","VEYSEL-KARANÎ DUASI","TERCÜMAN-I İSM-İ ÂZAM DUASI","İSM-İ ÂZAM DUASI","MÜNÂCÂTÜ'L-KUR'ÂN","TAHMÎDİYE DUASI","HULÂSATÜ'L-HULÂSA","MÜNÂCÂTÜ'L-KUR'ÂN","ŞEFAAT DUASI","CELCELÛTİYYE DUASI"]
+];
+const pre=["k","c"];
+const API_URL="PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+let claims={},drafts={},last="";
+try{last=localStorage.getItem("myname")||"";claims=JSON.parse(localStorage.getItem("cache")||"{}")}catch(e){claims={}}
+const saveCache=()=>{try{localStorage.setItem("cache",JSON.stringify(claims))}catch(e){}};
+function render(){
+  const act=document.activeElement,keep=act&&act.dataset?act.dataset.id:null;
+  pages.forEach((items,p)=>{
+    const el=document.getElementById("p"+p);el.innerHTML="";let n=0;
+    items.forEach((label,i)=>{
+      const id=pre[p]+i,who=claims[id],r=document.createElement("div");
+      r.className="row"+(who?" taken":"");
+      const b=document.createElement("b");b.textContent=label;r.appendChild(b);
+      if(who){
+        n++;
+        const w=document.createElement("span");w.className="who";w.textContent=who;r.appendChild(w);
+        const x=document.createElement("button");x.className="x";x.textContent="Release";x.onclick=()=>setClaim(id,null);r.appendChild(x);
+      }else{
+        const inp=document.createElement("input");inp.placeholder="Your name";inp.dataset.id=id;inp.setAttribute("aria-label","Your name for "+label);
+        inp.value=drafts[id]||"";
+        inp.oninput=()=>drafts[id]=inp.value;
+        const btn=document.createElement("button");btn.textContent="Take";
+        const go=()=>{const v=inp.value.trim();if(!v){inp.focus();inp.placeholder="Enter a name first";return}last=v;try{localStorage.setItem("myname",v)}catch(e){}delete drafts[id];setClaim(id,v)};
+        btn.onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go()};
+        r.appendChild(inp);r.appendChild(btn);
+      }
+      el.appendChild(r);
+    });
+    document.getElementById("b"+p).textContent=n;
+  });
+  if(keep){const e=document.querySelector('input[data-id="'+keep+'"]');if(e&&e!==act){e.focus()}}
+}
+async function call(opts){
+  const r=await fetch(API_URL,opts);return r.json();
+}
+async function setClaim(id,name){
+  const note=document.getElementById("note");note.textContent="";
+  const before=claims[id];
+  if(name===null){delete claims[id]}else{if(claims[id])return;claims[id]=name}
+  render();
+  if(!live())return;
+  try{
+    const res=await call({method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:name===null?"release":"take",id,name})});
+    if(res.claims){claims=res.claims;saveCache()}
+    if(res.ok===false)note.textContent="Someone just took that one. Please choose another.";
+    render();
+  }catch(e){
+    if(before===undefined)delete claims[id];else claims[id]=before;
+    note.textContent="Could not save. Check your connection and try again.";render();
+  }
+}
+const live=()=>API_URL.startsWith("https://");
+async function refresh(){
+  if(!live())return;
+  const note=document.getElementById("note");
+  try{
+    const r=await fetch(API_URL+(API_URL.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});
+    const res=await r.json();
+    if(!res||!res.claims)throw new Error("bad reply");
+    if(note.textContent.startsWith("Could not load"))note.textContent="";
+    if(JSON.stringify(res.claims)!==JSON.stringify(claims)){
+      const a=document.activeElement;
+      claims=res.claims;saveCache();
+      if(!(a&&a.tagName==="INPUT"&&a.value))render();
+    }
+  }catch(e){
+    note.textContent="Could not load sign-ups ("+(e&&e.message?e.message:"error")+"). Check that the Apps Script access is set to Anyone.";
+  }
+}
+[0,1].forEach(n=>document.getElementById("t"+n).onclick=()=>{
+  [0,1].forEach(m=>{document.getElementById("t"+m).setAttribute("aria-selected",m===n);document.getElementById("p"+m).classList.toggle("show",m===n)});
+});
+render();
+if(live()){refresh();setInterval(refresh,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()})}
+else document.getElementById("note").textContent="Preview mode: sign-ups are not shared yet. Connect the Google Sheet to share them.";
+</script>
+</body>
+</html>
